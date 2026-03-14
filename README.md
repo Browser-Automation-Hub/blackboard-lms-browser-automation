@@ -21,7 +21,7 @@ This system requires **MFA** (Duo / Microsoft MFA). The OSS version provides TOT
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/blackboard-lms-browser-automation.git
+git clone https://github.com/Browser-Automation-Hub/blackboard-lms-browser-automation.git
 cd blackboard-lms-browser-automation
 npm install
 cp .env.example .env
