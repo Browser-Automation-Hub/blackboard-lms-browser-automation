@@ -21,27 +21,33 @@ async function login_blackboard(page, opts = {}) {
 
   return retry(async () => {
     await humanDelay(500, 1500);
-
-    // TODO: Replace selectors with actual Blackboard LMS selectors
-    // These are placeholder implementations — inspect the actual UI
-    // and update the selectors accordingly.
-
     try {
-      // Example: navigate to the relevant section
-      // await page.goto(`${process.env.BLACKBOARD_URL}/path/to/login-blackboard`);
-      // await page.waitForSelector('.main-content, #content, [data-testid="loaded"]', { timeout: 15000 });
-
-      // Extract or interact with data
-      const result = await page.evaluate(() => {
-        // DOM extraction placeholder
-        return { status: 'ok', data: null };
-      });
-
-      log('login_blackboard complete', result);
-      return result;
-
+      const BASE_URL = process.env.BLACKBOARD_URL;
+    await page.goto(`${BASE_URL}/webapps/login/`, { waitUntil: 'networkidle2' });
+    // Handle SSO redirect (CAS/Shibboleth) or native login
+    if (page.url().includes('cas') || page.url().includes('shibboleth') || page.url().includes('saml')) {
+      await page.waitForSelector('input[type="text"], input[type="email"]', { timeout: 15000 });
+      await page.type('input[type="text"], input[type="email"]', process.env.BLACKBOARD_USERNAME);
+      await page.type('input[type="password"]', process.env.BLACKBOARD_PASSWORD);
+      await page.keyboard.press('Enter');
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+      // Duo MFA handling
+      const duoFrame = page.frames().find(f => f.url().includes('duo'));
+      if (duoFrame) {
+        await duoFrame.waitForSelector('button#trust-browser-button, [data-form-type="push"]', { timeout: 5000 }).catch(() => {});
+        const pushBtn = await duoFrame.$('[data-form-type="push"]');
+        if (pushBtn) { await pushBtn.click(); await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }); }
+      }
+    } else {
+      await page.waitForSelector('#user_id, input[name="user_id"]');
+      await page.type('#user_id', process.env.BLACKBOARD_USERNAME);
+      await page.type('#password', process.env.BLACKBOARD_PASSWORD);
+      await page.click('#entry-login, input[type="submit"]');
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+    }
+    await page.waitForSelector('#topframe, .base-layout, #navigationPane', { timeout: 20000 });
+    return { status: 'logged_in' };
     } catch (err) {
-      // Take screenshot on error for debugging
       await page.screenshot({ path: `error-login_blackboard-${Date.now()}.png` }).catch(() => {});
       throw err;
     }
@@ -61,27 +67,16 @@ async function enroll_students(page, opts = {}) {
 
   return retry(async () => {
     await humanDelay(500, 1500);
-
-    // TODO: Replace selectors with actual Blackboard LMS selectors
-    // These are placeholder implementations — inspect the actual UI
-    // and update the selectors accordingly.
-
     try {
-      // Example: navigate to the relevant section
-      // await page.goto(`${process.env.BLACKBOARD_URL}/path/to/enroll-students`);
-      // await page.waitForSelector('.main-content, #content, [data-testid="loaded"]', { timeout: 15000 });
-
-      // Extract or interact with data
-      const result = await page.evaluate(() => {
-        // DOM extraction placeholder
-        return { status: 'ok', data: null };
-      });
-
-      log('enroll_students complete', result);
-      return result;
-
+      // TODO: Replace with actual Blackboard LMS selectors
+    // await page.goto(`${process.env.BLACKBOARD_URL}/path/to/enroll-students`);
+    // await page.waitForSelector('.main-content, #content, [data-testid="loaded"]', { timeout: 15000 });
+    const result = await page.evaluate(() => {
+      return { status: 'ok', data: null };
+    });
+    log('enroll_students complete', result);
+    return result;
     } catch (err) {
-      // Take screenshot on error for debugging
       await page.screenshot({ path: `error-enroll_students-${Date.now()}.png` }).catch(() => {});
       throw err;
     }
@@ -101,27 +96,31 @@ async function post_grades(page, opts = {}) {
 
   return retry(async () => {
     await humanDelay(500, 1500);
-
-    // TODO: Replace selectors with actual Blackboard LMS selectors
-    // These are placeholder implementations — inspect the actual UI
-    // and update the selectors accordingly.
-
     try {
-      // Example: navigate to the relevant section
-      // await page.goto(`${process.env.BLACKBOARD_URL}/path/to/post-grades`);
-      // await page.waitForSelector('.main-content, #content, [data-testid="loaded"]', { timeout: 15000 });
-
-      // Extract or interact with data
-      const result = await page.evaluate(() => {
-        // DOM extraction placeholder
-        return { status: 'ok', data: null };
-      });
-
-      log('post_grades complete', result);
-      return result;
-
+      const BASE_URL = process.env.BLACKBOARD_URL;
+    const courseId = opts.courseId;
+    await page.goto(`${BASE_URL}/webapps/gradebook/do/instructor/enterGradeCenter?course_id=${courseId}&numColumns=0&returnToGC=false&useRecipientList=false`, { waitUntil: 'networkidle2' });
+    await page.waitForSelector('#gradebookgrid, .gradebook-cell, .Grade_Cell', { timeout: 20000 });
+    const grades = opts.grades || []; // [{studentId, columnId, grade}]
+    for (const {studentId, columnId, grade} of grades) {
+      const cellSel = `[id*="${studentId}"][id*="${columnId}"], .grade-cell[data-student="${studentId}"][data-column="${columnId}"]`;
+      const cell = await page.$(cellSel);
+      if (cell) {
+        await cell.click();
+        await cell.dblclick();
+        await page.waitForSelector('input.editBoxStyle, input[id*="grade_input"]', { timeout: 3000 });
+        const input = await page.$('input.editBoxStyle, input[id*="grade_input"]');
+        if (input) {
+          await input.click({ clickCount: 3 });
+          await input.type(String(grade));
+          await input.press('Tab');
+        }
+      }
+    }
+    const saveBtn = await page.$('input[value="Save Changes"], .submit_button');
+    if (saveBtn) await saveBtn.click();
+    return { status: 'ok', gradesPosted: grades.length };
     } catch (err) {
-      // Take screenshot on error for debugging
       await page.screenshot({ path: `error-post_grades-${Date.now()}.png` }).catch(() => {});
       throw err;
     }
@@ -141,27 +140,19 @@ async function download_submissions(page, opts = {}) {
 
   return retry(async () => {
     await humanDelay(500, 1500);
-
-    // TODO: Replace selectors with actual Blackboard LMS selectors
-    // These are placeholder implementations — inspect the actual UI
-    // and update the selectors accordingly.
-
     try {
-      // Example: navigate to the relevant section
-      // await page.goto(`${process.env.BLACKBOARD_URL}/path/to/download-submissions`);
-      // await page.waitForSelector('.main-content, #content, [data-testid="loaded"]', { timeout: 15000 });
-
-      // Extract or interact with data
-      const result = await page.evaluate(() => {
-        // DOM extraction placeholder
-        return { status: 'ok', data: null };
-      });
-
-      log('download_submissions complete', result);
-      return result;
-
+      const BASE_URL = process.env.BLACKBOARD_URL;
+    const courseId = opts.courseId;
+    const assignmentId = opts.assignmentId;
+    await page.goto(`${BASE_URL}/webapps/assignment/uploadAssignment?action=listSubmissions&course_id=${courseId}&content_id=${assignmentId}`, { waitUntil: 'networkidle2' });
+    await page.waitForSelector('.attemptCell, .listContainer, [id*="listContainer"]', { timeout: 15000 });
+    // Select all submissions
+    const selectAll = await page.$('#selectAll, input.bulkCB[value="allUsers"]');
+    if (selectAll) await selectAll.click();
+    const downloadLink = await page.$('a[href*="downloadAll"], input[value="Download All"]');
+    if (downloadLink) await downloadLink.click();
+    return { status: 'downloading', courseId, assignmentId };
     } catch (err) {
-      // Take screenshot on error for debugging
       await page.screenshot({ path: `error-download_submissions-${Date.now()}.png` }).catch(() => {});
       throw err;
     }
@@ -181,27 +172,16 @@ async function create_announcement(page, opts = {}) {
 
   return retry(async () => {
     await humanDelay(500, 1500);
-
-    // TODO: Replace selectors with actual Blackboard LMS selectors
-    // These are placeholder implementations — inspect the actual UI
-    // and update the selectors accordingly.
-
     try {
-      // Example: navigate to the relevant section
-      // await page.goto(`${process.env.BLACKBOARD_URL}/path/to/create-announcement`);
-      // await page.waitForSelector('.main-content, #content, [data-testid="loaded"]', { timeout: 15000 });
-
-      // Extract or interact with data
-      const result = await page.evaluate(() => {
-        // DOM extraction placeholder
-        return { status: 'ok', data: null };
-      });
-
-      log('create_announcement complete', result);
-      return result;
-
+      // TODO: Replace with actual Blackboard LMS selectors
+    // await page.goto(`${process.env.BLACKBOARD_URL}/path/to/create-announcement`);
+    // await page.waitForSelector('.main-content, #content, [data-testid="loaded"]', { timeout: 15000 });
+    const result = await page.evaluate(() => {
+      return { status: 'ok', data: null };
+    });
+    log('create_announcement complete', result);
+    return result;
     } catch (err) {
-      // Take screenshot on error for debugging
       await page.screenshot({ path: `error-create_announcement-${Date.now()}.png` }).catch(() => {});
       throw err;
     }
