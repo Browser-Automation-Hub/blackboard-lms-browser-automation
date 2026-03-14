@@ -253,6 +253,40 @@ await withAnchorBrowser(async (page) => {
 
 ---
 
+## Known Selectors Reference
+
+> These CSS selectors were observed in Blackboard LMS web interfaces. Enterprise applications update their UIs — verify against your specific instance and submit PRs when selectors break.
+
+| Element | Selector | Notes |
+|---------|----------|-------|
+| Login: username | `#user_id` | Login form |
+| Login: password | `#password` | Login form |
+| Login: submit | `#entry-login` | Login form |
+| Login: mfa code | `#duo_form input[name="passcode"]` | Login form |
+| enroll students: course nav | `a[href*="/webapps/blackboard/execute/course"]` | |
+| enroll students: users link | `a[href*="listUsers"]` | |
+| enroll students: enroll btn | `a[href*="addUser"]` | |
+| enroll students: username field | `#username` | |
+| enroll students: submit btn | `input[value="Submit"]` | |
+| post grades: course grade center | `a[href*="gradebook"]` | |
+| post grades: full grade center | `a[href*="enterGradeCenter"]` | |
+| post grades: grade cell | `.Grade_Cell` | |
+| post grades: grade input | `input.editBoxStyle` | |
+| post grades: submit changes | `input[value="Save Changes"]` | |
+| download submissions: assignment link | `.contentListItem a` | |
+| download submissions: submissions link | `a[href*="listAllSubmissions"]` | |
+| download submissions: download all | `a[href*="downloadAll"]` | |
+| download submissions: bulk checkbox | `#selectAll` | |
+| create announcement: announcements link | `a[href*="announcements"]` | |
+| create announcement: create btn | `a[href*="createAnnouncement"]` | |
+| create announcement: title field | `#aui_3_4_0_1_1064` | |
+| create announcement: body editor | `#announcementBody_contentEditable` | |
+| create announcement: submit btn | `input[value="Submit"]` | |
+
+> ⚠️ Selectors are best-effort. Run `node src/utils.js --verify-selectors` to test against your instance.
+
+---
+
 ## More Browser Automation Projects
 
 This is part of the **[Browser Automation Hub](https://github.com/Browser-Automation-Hub)** — a collection of open-source browser automation scaffolds for systems with poor or no API support:
