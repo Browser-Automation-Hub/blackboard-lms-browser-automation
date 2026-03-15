@@ -1,7 +1,7 @@
 {
-  "name": "blackboard-lms-browser-automation",
+  "name": "@browser-automation-hub/blackboard-lms-browser-automation",
   "version": "1.0.0",
-  "description": "Browser automation for Blackboard Learn — enroll students, post grades, download submissions, manage courses, and automate LMS workflows without the Blackboard REST API.",
+  "description": "Browser automation for Blackboard Learn — enroll students, post grades, manage courses without the Blackboard REST API",
   "main": "src/actions.js",
   "scripts": {
     "start": "node examples/basic-login.js",
@@ -16,7 +16,7 @@
     "browser-automation",
     "puppeteer",
     "playwright",
-    "anchorbrowser",
+    "anchor-browser",
     "nodejs"
   ],
   "license": "MIT",
@@ -35,5 +35,8 @@
   "homepage": "https://github.com/Browser-Automation-Hub/blackboard-lms-browser-automation#readme",
   "bugs": {
     "url": "https://github.com/Browser-Automation-Hub/blackboard-lms-browser-automation/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
